@@ -1,5 +1,6 @@
-mvp: non db, non auth
+test: mvp
 <!-- 完成伪代码撰写 -->
+<!-- mvp: non db, non auth
 前端人齐，告诉后端
 后端调用startgame
 后端获取状态，给到前端
@@ -30,4 +31,4 @@ mvp: non db, non auth
 
 传到github，托管
 在这里开发，再传到 github 上，再由云托管拉下来更新发布
-注意不用云开发。云开发的那个cloud记得删除！
+注意不用云开发。云开发的那个cloud记得删除！ -->
