@@ -1,0 +1,5 @@
+status/
+__pycache__/
+.git/
+.venv/
+*.pyc
