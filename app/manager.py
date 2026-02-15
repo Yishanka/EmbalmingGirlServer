@@ -2,7 +2,7 @@ from fastapi import WebSocket
 
 from fastapi import WebSocket
 from typing import Optional, List
-from model import *
+from app.model import *
 
 class ConnectionManager:
     def __init__(self):
@@ -26,14 +26,32 @@ class ConnectionManager:
     async def send_personal_message(self, message: WsResponse, game_id: str, pid: str):
         if game_id in self.active_connections and pid in self.active_connections[game_id]:
             websocket = self.active_connections[game_id][pid]
-            await websocket.send_json(message)
+            # WsResponse is a Pydantic model; convert to dict for JSON serialization
+            try:
+                await websocket.send_json(message.dict())
+            except Exception:
+                # If sending fails (client closed), clean up the connection
+                try:
+                    await websocket.close()
+                except Exception:
+                    pass
+                self.disconnect(game_id, pid)
 
     async def broadcast(self, message: WsResponse, game_id: str, exclude_pid: Optional[str] = None):
         if game_id not in self.active_connections:
             return
-        for pid, websocket in self.active_connections[game_id].items():
-            if pid != exclude_pid:
-                await websocket.send_json(message)
+        # Iterate over a static list to allow removal during iteration
+        for pid, websocket in list(self.active_connections[game_id].items()):
+            if pid == exclude_pid:
+                continue
+            try:
+                await websocket.send_json(message.dict())
+            except Exception:
+                try:
+                    await websocket.close()
+                except Exception:
+                    pass
+                self.disconnect(game_id, pid)
 
     def get_connection_count(self, game_id: str) -> int:
         return len(self.active_connections.get(game_id, {}))

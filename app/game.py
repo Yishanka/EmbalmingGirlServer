@@ -1,5 +1,5 @@
 import random
-from app.model import Card, SingleMoveData, InterMoveData, Player, GameState, PersonalState
+from app.model import Card, SingleMoveData, InterMoveData, Player, GameState, PersonalState, GameInfo
 from app.error import GameError
 import app.error as err
 import asyncio
@@ -87,8 +87,18 @@ class Game:
         self.inter_move_data: InterMoveData = None
         self.inter_data_num: int = 0
 
+        self.timer_started: bool = False
+
         # self.permitted = False
         # self.op_lock = asyncio.Lock()
+    
+    def get_info(self) -> GameInfo:
+        return GameInfo(
+            game_id=None,
+            set_num=self.set_num,
+            num_players=len(self.players),
+            started=self.started
+        )
     
     def get_state(self) -> GameState:
         winners = self._calc_winner()
@@ -97,7 +107,7 @@ class Game:
             played_cards = self.played_cards,
             embed_cards=self.embed_cards,
             curr=self.curr,
-            set_num=self.set_num,
+            # set_num=self.set_num,
             started=self.started,
             finished=self.finished,
             curr_move_type=self.curr_move_type,
@@ -109,7 +119,7 @@ class Game:
         winners = self._calc_winner()
         try:
             player: Player = [p for p in self.players if p.pid == pid][0]
-            other_players: list[Player] = [p for p in self.players if p.pid != pid][0]
+            other_players: list[Player] = [p for p in self.players if p.pid != pid]
         except:
             raise GameError(err.INVALID_PLAYER_ID)
         return PersonalState(
@@ -125,7 +135,7 @@ class Game:
             played_cards = self.played_cards,
             embed_cards=[c[0] for c in self.embed_cards],
             curr=self.curr,
-            set_num=self.set_num,
+            # set_num=self.set_num,
             started=self.started,
             finished=self.finished,
             curr_move_type=self.curr_move_type,
@@ -236,21 +246,24 @@ class Game:
         if (len(self.players) != self.set_num):
             raise GameError(err.INVALID_PLAYER_NUM)
         
+        self.started = True
+        self.curr_move_type = DEFAULT
+        
         # generate deck
         deck: list[Card] = (
-            [Card(name='xue-sheng-hui-zhang', p=3)] * 3 +
-            [Card(name='bao-jian-wei-yuan', p=1)] * 2 +
-            [Card(name='tu-shu-wei-yuan', p=1)] * (3 if len(self.players) == 5 else 2) +
-            [Card(name='feng-ji-wei-yuan', p=1)] * (1 if len(self.players) == 3 else 2) +
-            [Card(name='da-xiao-jie', p=1)] * (2 if len(self.players) == 3 else 3) +
-            [Card(name='xin-wen-bu', p=1)] * (2 if len(self.players) == 3 else 3) +
-            [Card(name='ban-zhang', p=2)] * 2 +
-            [Card(name='you-deng-sheng', p=2)] * (1 if len(self.players) == 3 else 2) +
-            [Card(name='fan-ren', p=0)] * 1 +
-            [Card(name='gong-fan', p=0)] * (0 if len(self.players) == 3 else 1) +
-            [Card(name='wai-xing-ren', p=-1)] * 1 +
-            [Card(name='gan-ran-zhe', p=0)] * 1 +
-            [Card(name='gui-zhai-bu', p=0)] * (2 if len(self.players) == 3 else 3)
+            [Card(name='xue-sheng-hui-zhang', point=3)] * 3 +
+            [Card(name='bao-jian-wei-yuan', point=1)] * 2 +
+            [Card(name='tu-shu-wei-yuan', point=1)] * (3 if len(self.players) == 5 else 2) +
+            [Card(name='feng-ji-wei-yuan', point=1)] * (1 if len(self.players) == 3 else 2) +
+            [Card(name='da-xiao-jie', point=1)] * (2 if len(self.players) == 3 else 3) +
+            [Card(name='xin-wen-bu', point=1)] * (2 if len(self.players) == 3 else 3) +
+            [Card(name='ban-zhang', point=2)] * 2 +
+            [Card(name='you-deng-sheng', point=2)] * (1 if len(self.players) == 3 else 2) +
+            [Card(name='fan-ren', point=0)] * 1 +
+            [Card(name='gong-fan', point=0)] * (0 if len(self.players) == 3 else 1) +
+            [Card(name='wai-xing-ren', point=-1)] * 1 +
+            [Card(name='gan-ran-zhe', point=0)] * 1 +
+            [Card(name='gui-zhai-bu', point=0)] * (2 if len(self.players) == 3 else 3)
         )
         num_card_p = len(deck) // len(self.players)
         
@@ -266,14 +279,22 @@ class Game:
             if (len(start_card) > 0):
                 self.curr = i
                 break
-
-        self.started = True
-        self.curr_move_type = DEFAULT
         
 
     def inter_is_ready(self, req_num: int) -> bool:
-        return self.inter_data_num >= req_num 
+        return self.inter_data_num == req_num 
+    
+    def timer(self, duration: float) -> bool:
+        if self.timer_started == True:
+            return False
         
+        import time
+        start: float = time.time()
+        while (True):
+            if time.time() - start >= duration:
+                self.timer_started = False
+                return True
+
     def collect_interdata(self, pid: str, move_data: SingleMoveData):
         try:
             self.inter_data_num += 1

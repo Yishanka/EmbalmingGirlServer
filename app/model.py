@@ -8,7 +8,7 @@ class Card(BaseModel):
     # visible: bool = False
 
 class Player(BaseModel):
-    pid: str = None
+    pid: str | None
     hand_cards: list[Card] = []
     imped_cards: list[tuple[str, Card]] = []
     checked_player_cards: dict[str, list[Card]] = {}
@@ -22,11 +22,17 @@ class GameState(BaseModel):
     embed_cards: list[tuple[str, Card]] = [] # pid, c
     curr: int  
     # jump_curr: int
-    set_num: int
+    # set_num: int
     started: bool
     finished: bool
     curr_move_type: str
     winners: list[str]
+
+class GameInfo(BaseModel):
+    game_id: str | None
+    set_num: int
+    num_players: int
+    started: bool
 
 class PersonalState(BaseModel):
     player: Player
@@ -34,8 +40,8 @@ class PersonalState(BaseModel):
     other_imped_cards: dict[str, list[str]] = {}
     played_cards: list[tuple[str, Card]]
     embed_cards: list[str] = [] # pid
-    curr: int  
-    set_num: int
+    curr: int | None
+    # set_num: int
     started: bool
     finished: bool
     curr_move_type: str
@@ -49,14 +55,14 @@ class InterMoveData(BaseModel):
     ops: dict[str, SingleMoveData]
     
 # request model: more detailed model type
-class GameCreateRequest(BaseModel):
+class CreateGameRequest(BaseModel):
     set_num: int
 
-class JoinGameRequest(BaseModel):
+class FetchGameRequest(BaseModel):
     game_id: str
 
 class WsMoveRequest(BaseModel):
-    type: str = Field(..., description="START/EMB/IMP/PLAY/CONT_PLAY")
+    type: str = Field(..., description="INIT?EMB/IMP/PLAY/CONT_PLAY")
     move_data: SingleMoveData = None
 
 # response model
@@ -71,6 +77,11 @@ class WsResponse(BaseModel):
     msg: str = "SUCCESS"  # 提示信息
     state: Optional[PersonalState] = None
 
+# class GameInfoReponse(BaseModel):
+#     game_id: str
+#     set_num: int 
+#     num_player: int 
+#     started: bool 
 
 # class ExceptionPayload(BaseModel):
 #     code: str
